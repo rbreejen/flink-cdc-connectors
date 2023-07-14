@@ -46,13 +46,15 @@ public class OracleValidator implements Validator {
     public void validate() {
         try (Connection connection = openConnection(properties)) {
             DatabaseMetaData metaData = connection.getMetaData();
-            if (metaData.getDatabaseMajorVersion() != 19
+            if (metaData.getDatabaseMajorVersion() != 21
+                    && metaData.getDatabaseMajorVersion() != 19
+                    && metaData.getDatabaseMajorVersion() != 18
                     && metaData.getDatabaseMajorVersion() != 12
                     && metaData.getDatabaseMajorVersion() != 11) {
                 throw new ValidationException(
                         String.format(
                                 "Currently Flink Oracle CDC connector only supports Oracle "
-                                        + "whose version is either 11, 12 or 19, but actual is %d.%d.",
+                                        + "whose version is either 11, 12, 18, 19 or 21, but actual is %d.%d.",
                                 metaData.getDatabaseMajorVersion(),
                                 metaData.getDatabaseMinorVersion()));
             }
