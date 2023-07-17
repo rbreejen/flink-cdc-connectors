@@ -60,7 +60,7 @@ under the License.
                                     <include>com.ververica:flink-connector-oracle-cdc</include>
                                     <include>org.antlr:antlr4-runtime</include>
                                     <include>com.github.jsqlparser:jsqlparser</include>
-                                    <include>com.oracle.ojdbc:*</include>
+                                    <include>com.oracle.database.jdbc:*</include>
                                     <include>com.oracle.database.xml:*</include>
                                     <include>org.apache.kafka:*</include>
                                     <include>com.fasterxml.*:*</include>
