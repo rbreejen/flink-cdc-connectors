@@ -119,7 +119,7 @@ public class OracleSourceITCase extends OracleSourceTestBase {
             FailoverPhase failoverPhase,
             String[] captureCustomerTables)
             throws Exception {
-        createAndInitialize("customer.sql");
+
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         StreamTableEnvironment tEnv = StreamTableEnvironment.create(env);
 
@@ -129,68 +129,29 @@ public class OracleSourceITCase extends OracleSourceTestBase {
 
         String sourceDDL =
                 format(
-                        "CREATE TABLE products ("
-                                + " ID INT NOT NULL,"
-                                + " NAME STRING,"
-                                + " ADDRESS STRING,"
-                                + " PHONE_NUMBER STRING,"
+                        "CREATE TABLE sample_data ("
+                                + " ID INT,"
+                                + " CREATED_ON DATE,"
+                                + " RANDOM_NUMBER INT,"
                                 + " primary key (ID) not enforced"
                                 + ") WITH ("
                                 + " 'connector' = 'oracle-cdc',"
-                                + " 'hostname' = '%s',"
-                                + " 'port' = '%s',"
-                                + " 'username' = '%s',"
-                                + " 'password' = '%s',"
-                                + " 'database-name' = '%s',"
-                                + " 'schema-name' = '%s',"
-                                + " 'table-name' = '%s',"
-                                + " 'scan.incremental.snapshot.enabled' = 'false',"
-                                + " 'debezium.log.mining.strategy' = 'online_catalog',"
-                                + " 'debezium.log.mining.continuous.mine' = 'true',"
-                                + " 'debezium.database.history.store.only.captured.tables.ddl' = 'true'"
-                                + ")",
-                        ORACLE_CONTAINER.getHost(),
-                        ORACLE_CONTAINER.getOraclePort(),
-                        ORACLE_CONTAINER.getUsername(),
-                        ORACLE_CONTAINER.getPassword(),
-                        ORACLE_DATABASE,
-                        ORACLE_SCHEMA,
-                        getTableNameRegex(captureCustomerTables) // (customer|customer_1)
+                                + " 'hostname' = 'localhost',"
+                                + " 'port' = '1521',"
+                                + " 'username' = 'C##MYUSER',"
+                                + " 'password' = 'mypassword',"
+                                + " 'database-name' = 'XE',"
+                                + " 'schema-name' = 'DEBEZIUM',"
+                                + " 'table-name' = 'SAMPLE_DATA',"
+                                + " 'debezium.database.pdb.name' = 'XEPDB1'"
+                                + ")"
                         );
 
-        // first step: check the snapshot data
-        String[] snapshotForSingleTable =
-                new String[] {
-                    "+I[101, user_1, Shanghai, 123567891234]",
-                    "+I[102, user_2, Shanghai, 123567891234]",
-                    "+I[103, user_3, Shanghai, 123567891234]",
-                    "+I[109, user_4, Shanghai, 123567891234]",
-                    "+I[110, user_5, Shanghai, 123567891234]",
-                    "+I[111, user_6, Shanghai, 123567891234]",
-                    "+I[118, user_7, Shanghai, 123567891234]",
-                    "+I[121, user_8, Shanghai, 123567891234]",
-                    "+I[123, user_9, Shanghai, 123567891234]",
-                    "+I[1009, user_10, Shanghai, 123567891234]",
-                    "+I[1010, user_11, Shanghai, 123567891234]",
-                    "+I[1011, user_12, Shanghai, 123567891234]",
-                    "+I[1012, user_13, Shanghai, 123567891234]",
-                    "+I[1013, user_14, Shanghai, 123567891234]",
-                    "+I[1014, user_15, Shanghai, 123567891234]",
-                    "+I[1015, user_16, Shanghai, 123567891234]",
-                    "+I[1016, user_17, Shanghai, 123567891234]",
-                    "+I[1017, user_18, Shanghai, 123567891234]",
-                    "+I[1018, user_19, Shanghai, 123567891234]",
-                    "+I[1019, user_20, Shanghai, 123567891234]",
-                    "+I[2000, user_21, Shanghai, 123567891234]"
-                };
         tEnv.executeSql(sourceDDL);
-        TableResult tableResult = tEnv.executeSql("select * from products");
+        TableResult tableResult = tEnv.executeSql("select * from sample_data");
         CloseableIterator<Row> iterator = tableResult.collect();
         JobID jobId = tableResult.getJobClient().get().getJobID();
         List<String> expectedSnapshotData = new ArrayList<>();
-        for (int i = 0; i < captureCustomerTables.length; i++) {
-            expectedSnapshotData.addAll(Arrays.asList(snapshotForSingleTable));
-        }
 
         // trigger failover after some snapshot splits read finished
         if (failoverPhase == FailoverPhase.SNAPSHOT && iterator.hasNext()) {
@@ -274,42 +235,6 @@ public class OracleSourceITCase extends OracleSourceTestBase {
         } else {
             // pattern that matches multiple tables
             return format("(%s)", StringUtils.join(captureCustomerTables, "|"));
-        }
-    }
-
-    private void createAndInitialize(String sqlFile) throws Exception {
-        final String ddlFile = String.format("ddl/%s", sqlFile);
-        final URL ddlTestFile = OracleSourceITCase.class.getClassLoader().getResource(ddlFile);
-        assertNotNull("Cannot locate " + ddlFile, ddlTestFile);
-        try (Connection connection = getConnection();
-                Statement statement = connection.createStatement()) {
-
-            try {
-                // DROP TABLE IF EXITS
-                statement.execute("DROP TABLE DEBEZIUM.CUSTOMERS");
-                statement.execute("DROP TABLE DEBEZIUM.CUSTOMERS_1");
-            } catch (Exception e) {
-                LOG.error("DEBEZIUM.CUSTOMERS DEBEZIUM.CUSTOMERS_1 NOT EXITS", e);
-            }
-
-            final List<String> statements =
-                    Arrays.stream(
-                                    Files.readAllLines(Paths.get(ddlTestFile.toURI())).stream()
-                                            .map(String::trim)
-                                            .filter(x -> !x.startsWith("--") && !x.isEmpty())
-                                            .map(
-                                                    x -> {
-                                                        final Matcher m =
-                                                                COMMENT_PATTERN.matcher(x);
-                                                        return m.matches() ? m.group(1) : x;
-                                                    })
-                                            .collect(Collectors.joining("\n"))
-                                            .split(";"))
-                            .collect(Collectors.toList());
-
-            for (String stmt : statements) {
-                statement.execute(stmt);
-            }
         }
     }
 

@@ -69,13 +69,6 @@ public class OracleSourceTestBase extends TestLogger {
                             .withHaLeadershipControl()
                             .build());
 
-    @BeforeClass
-    public static void startContainers() {
-        LOG.info("Starting containers...");
-        Startables.deepStart(Stream.of(ORACLE_CONTAINER)).join();
-        LOG.info("Containers are started.");
-    }
-
     public static void assertEqualsInAnyOrder(List<String> expected, List<String> actual) {
         assertTrue(expected != null && actual != null);
         assertEqualsInOrder(
