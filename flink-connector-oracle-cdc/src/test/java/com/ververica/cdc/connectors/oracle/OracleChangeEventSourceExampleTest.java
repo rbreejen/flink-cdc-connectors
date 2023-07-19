@@ -50,8 +50,8 @@ public class OracleChangeEventSourceExampleTest {
 
     private static final int DEFAULT_PARALLELISM = 4;
     private static final long DEFAULT_CHECKPOINT_INTERVAL = 1000;
-    private static final OracleContainer oracleContainer =
-            OracleTestUtils.ORACLE_CONTAINER.withLogConsumer(new Slf4jLogConsumer(LOG));
+//    private static final OracleContainer oracleContainer =
+//            OracleTestUtils.ORACLE_CONTAINER.withLogConsumer(new Slf4jLogConsumer(LOG));
 
     @Rule
     public final MiniClusterWithClientResource miniClusterResource =
@@ -64,50 +64,51 @@ public class OracleChangeEventSourceExampleTest {
                             .withHaLeadershipControl()
                             .build());
 
-    @BeforeClass
-    public static void startContainers() {
-        LOG.info("Starting containers...");
-        Startables.deepStart(Stream.of(oracleContainer)).join();
-        LOG.info("Containers are started.");
-    }
-
-    @After
-    public void teardown() {
-        oracleContainer.stop();
-    }
+//    @BeforeClass
+//    public static void startContainers() {
+//        LOG.info("Starting containers...");
+//        Startables.deepStart(Stream.of(oracleContainer)).join();
+//        LOG.info("Containers are started.");
+//    }
+//
+//    @After
+//    public void teardown() {
+//        oracleContainer.stop();
+//    }
 
     @Test
-    @Ignore("Test ignored because it won't stop and is used for manual test")
+//    @Ignore("Test ignored because it won't stop and is used for manual test")
     public void testConsumingAllEvents() throws Exception {
-        LOG.info(
-                "getOraclePort:{},getUsername:{},getPassword:{}",
-                oracleContainer.getOraclePort(),
-                oracleContainer.getUsername(),
-                oracleContainer.getPassword());
+//        LOG.info(
+//                "getOraclePort:{},getUsername:{},getPassword:{}",
+//                oracleContainer.getOraclePort(),
+//                oracleContainer.getUsername(),
+//                oracleContainer.getPassword());
 
         Properties debeziumProperties = new Properties();
-        debeziumProperties.setProperty("log.mining.strategy", "online_catalog");
-        debeziumProperties.setProperty("log.mining.continuous.mine", "true");
+        debeziumProperties.setProperty("database.pdb.name","XEPDB1");
+//        debeziumProperties.setProperty("log.mining.strategy", "online_catalog");
+//        debeziumProperties.setProperty("log.mining.continuous.mine", "true");
 
         JdbcIncrementalSource<String> oracleChangeEventSource =
                 new OracleSourceBuilder()
-                        .hostname(oracleContainer.getHost())
-                        .port(oracleContainer.getOraclePort())
+                        .hostname("localhost")
+                        .port(1521)
                         .databaseList("XE")
                         .schemaList("DEBEZIUM")
-                        .tableList("DEBEZIUM.PRODUCTS")
-                        .username(oracleContainer.getUsername())
-                        .password(oracleContainer.getPassword())
+                        .tableList("DEBEZIUM.SAMPLE_DATA") // monitor sample_data
+                        .username("C##MYUSER")
+                        .password("mypassword")
                         .deserializer(new JsonDebeziumDeserializationSchema())
                         .includeSchemaChanges(true) // output the schema changes as well
-                        .startupOptions(StartupOptions.initial())
+                        .startupOptions(StartupOptions.latest())
                         .debeziumProperties(debeziumProperties)
                         .splitSize(2)
                         .build();
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         // enable checkpoint
-        env.enableCheckpointing(DEFAULT_CHECKPOINT_INTERVAL);
+        // env.enableCheckpointing(DEFAULT_CHECKPOINT_INTERVAL);
         // set the source parallelism to 4
         env.fromSource(
                         oracleChangeEventSource,
