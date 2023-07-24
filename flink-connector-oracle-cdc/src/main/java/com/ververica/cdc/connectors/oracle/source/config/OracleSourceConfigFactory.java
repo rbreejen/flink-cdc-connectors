@@ -84,6 +84,8 @@ public class OracleSourceConfigFactory extends JdbcSourceConfigFactory {
         // disable tombstones
         props.setProperty("tombstones.on.delete", String.valueOf(false));
 
+        props.setProperty("include.schema.changes", String.valueOf(includeSchemaChanges));
+
         if (url != null) {
             props.setProperty("database.url", url);
         } else {
