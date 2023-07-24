@@ -93,8 +93,8 @@ public class OracleConnectionUtils {
 
         Set<TableId> tableIdSet = new HashSet<>();
         String queryTablesSql =
-                "SELECT OWNER ,TABLE_NAME,TABLESPACE_NAME FROM ALL_TABLES \n"
-                        + "WHERE TABLESPACE_NAME IS NOT NULL AND TABLESPACE_NAME NOT IN ('SYSTEM','SYSAUX')";
+                "SELECT OWNER ,TABLE_NAME,TABLESPACE_NAME FROM CDB_TABLES \n"
+                        + "WHERE TABLESPACE_NAME IS NOT NULL AND TABLESPACE_NAME NOT IN ('SYSTEM','SYSAUX') AND CON$NAME != 'CDB$ROOT'";
         try {
             jdbcConnection.query(
                     queryTablesSql,
